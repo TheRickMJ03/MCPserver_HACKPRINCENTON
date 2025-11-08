@@ -9,3 +9,8 @@ export {
   generateRoutineToolDefinition,
   handleGenerateRoutineTool,
 } from './routine.js';
+
+export {
+  getSmallTipToolDefinition,
+  handleGetSmallTipTool,
+} from './tips.js';

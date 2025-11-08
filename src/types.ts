@@ -15,3 +15,8 @@ export interface GenerateRoutineArgs {
 
   interest: string;
 }
+
+export interface GetSmallTipArgs {
+  interest: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+}

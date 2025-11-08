@@ -1,5 +1,4 @@
-import { GetProgrammingTipArgs, GenerateRoutineArgs } from './types.js';
-// --- Interfaces for Google Custom Search API Response ---
+import { GetProgrammingTipArgs, GenerateRoutineArgs, GetSmallTipArgs } from './types.js';
 interface GoogleSearchResult {
     title: string;
     link: string;
@@ -25,7 +24,7 @@ export class DailyImprovementClient {
     async getRoutine(params: GenerateRoutineArgs): Promise<string> {
         const { interest } = params;
         
-        const query = `21 day '1 percent better' routine for ${interest}`;
+        const query = `21 day '1 percent better every day ' routine for ${interest}`;
 
         try {
             const searchData = await this.performRequest(query);
@@ -51,7 +50,36 @@ export class DailyImprovementClient {
             return `Error: Could not fetch routine. ${error instanceof Error ? error.message : ''}`;
         }
     }
+    async getSmallTip(params: GetSmallTipArgs): Promise<string> {
+            const { interest, difficulty } = params;
+            
+            const query = `short ${difficulty} 1% better tip for ${interest}`;
 
+            try {
+                const searchData = await this.performRequest(query);
+
+                if (!searchData.items || searchData.items.length === 0) {
+                    return `Sorry, I couldn't find any short tips for ${interest}.`;
+                }
+
+             
+                const topResult = searchData.items[0];
+                
+                let tip = topResult.snippet.replace(/\.\.\./g, ''); // Remove '...'
+                
+                const sentences = tip.split('. ');
+                tip = sentences[0].trim(); 
+                if (tip.length < 20) {
+                    tip = topResult.title;
+                }
+
+                return `Here's a ${difficulty} tip for ${interest}: ${tip}. (Source: ${topResult.link})`;
+
+            } catch (error) {
+                console.error("Error fetching from Google Search:", error);
+                return `Error: Could not fetch tip. ${error instanceof Error ? error.message : ''}`;
+            }
+        }
     /**
      * Gets a programming tip by searching Google.
      */
