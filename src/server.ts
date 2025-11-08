@@ -5,16 +5,18 @@ import {
     InitializedNotificationSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { DailyImprovementClient } from './client.js';
+import { Config } from './config.js'; // <-- Import Config
 import {
     getProgrammingTipToolDefinition,
     handleGetProgrammingTipTool,
 } from './tools/index.js';
 
-export function createStandaloneServer(apiKey: string): Server {
+// Pass the full config object
+export function createStandaloneServer(config: Config): Server {
     const serverInstance = new Server(
         {
             name: "org/daily-improvement",
-            version: "0.1.0",
+            version: "0.2.0", // Upped version for new feature
         },
         {
             capabilities: {
@@ -23,21 +25,22 @@ export function createStandaloneServer(apiKey: string): Server {
         }
     );
 
-    const client = new DailyImprovementClient(apiKey);
+    // Pass the specific keys to the client
+    const client = new DailyImprovementClient(config.googleApiKey, config.googleCx);
 
     serverInstance.setNotificationHandler(InitializedNotificationSchema, async () => {
-        console.log('DailyImprovement MCP client initialized');
+        console.log('DailyImprovement MCP client initialized (Google Search Enabled)');
     });
 
     serverInstance.setRequestHandler(ListToolsRequestSchema, async () => ({
-        tools: [getProgrammingTipToolDefinition], // Register your tool here
+        tools: [getProgrammingTipToolDefinition],
     }));
 
     serverInstance.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { name, arguments: args } = request.params;
         
         switch (name) {
-            case "dailyImprovement_getProgrammingTip": // Match your tool name
+            case "dailyImprovement_getProgrammingTip":
                 return await handleGetProgrammingTipTool(client, args);
             default:
                 return {
@@ -50,14 +53,15 @@ export function createStandaloneServer(apiKey: string): Server {
     return serverInstance;
 }
 
+// MAKE SURE 'EXPORT' IS HERE
 export class DailyImprovementServer {
-    private apiKey: string;
+    private config: Config; // <-- Store the whole config
 
-    constructor(apiKey: string) {
-        this.apiKey = apiKey;
+    constructor(config: Config) { // <-- Accept the whole config
+        this.config = config;
     }
 
     getServer(): Server {
-        return createStandaloneServer(this.apiKey);
+        return createStandaloneServer(this.config); // <-- Pass the whole config
     }
 }

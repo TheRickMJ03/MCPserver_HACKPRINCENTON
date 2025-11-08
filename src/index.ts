@@ -14,7 +14,7 @@ async function main() {
         const cliOptions = parseArgs();
         
         if (cliOptions.stdio) {
-            const server = new DailyImprovementServer(config.apiKey);
+            const server = new DailyImprovementServer(config);
             await runStdioTransport(server.getServer());
         } else {
             const port = cliOptions.port || config.port;

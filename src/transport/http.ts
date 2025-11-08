@@ -66,7 +66,7 @@ async function handleSSERequest(
     res: ServerResponse,
     config: Config
 ): Promise<void> {
-    const serverInstance = createStandaloneServer(config.apiKey);
+    const serverInstance = createStandaloneServer(config);
     const transport = new SSEServerTransport('/sse', res);
     
     try {
@@ -84,7 +84,7 @@ async function createNewSession(
     res: ServerResponse,
     config: Config
 ): Promise<void> {
-    const serverInstance = createStandaloneServer(config.apiKey);
+    const serverInstance = createStandaloneServer(config);
     const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sessionId) => {

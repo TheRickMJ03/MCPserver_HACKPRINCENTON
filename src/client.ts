@@ -1,55 +1,84 @@
-import { GetProgrammingTipArgs, ProgrammingTipResponse } from './types.js';
+import { GetProgrammingTipArgs } from './types.js';
+
+// --- Interfaces for Google Custom Search API Response ---
+interface GoogleSearchResult {
+    title: string;
+    link: string;
+    snippet: string;
+}
+
+interface GoogleSearchResponse {
+    items?: GoogleSearchResult[];
+}
+// ---
 
 export class DailyImprovementClient {
     private apiKey: string;
+    private cx: string;
+    private baseUrl: string = 'https://www.googleapis.com/customsearch/v1';
 
-    constructor(apiKey: string) {
-        // We accept the apiKey to match the template, but won't use it here.
+    constructor(apiKey: string, cx: string) {
         this.apiKey = apiKey;
+        this.cx = cx;
     }
 
     /**
-     * "Simulates" an API request to get a programming tip.
-     * In a real app, this could fetch from a database or call another AI.
+     * Gets a programming tip by searching Google.
      */
     async getTip(params: GetProgrammingTipArgs): Promise<string> {
         const { topic } = params;
         
-        let response: ProgrammingTipResponse;
+        // Formulate a search query
+        const query = `advanced ${topic} programming tip or unique insight`;
 
-        // Simple logic to generate a tip
-        switch (topic.toLowerCase()) {
-            case 'python':
-                response = {
-                    topic: 'Python',
-                    tip: "Use list comprehensions for concise and readable list creation.",
-                    example: "`squares = [x*x for x in range(10)]`"
-                };
-                break;
-            case 'react':
-                response = {
-                    topic: 'React',
-                    tip: "Use the `memo` HOC (Higher-Order Component) to prevent re-renders of components whose props haven't changed.",
-                    example: "`export default React.memo(MyComponent);`"
-                };
-                break;
-            case 'general':
-            default:
-                response = {
-                    topic: 'General Programming',
-                    tip: "Follow the 'Don't Repeat Yourself' (DRY) principle. If you copy-paste code, consider refactoring it into a function.",
-                };
+        try {
+            const searchData = await this.performRequest(query);
+
+            if (!searchData.items || searchData.items.length === 0) {
+                return `Sorry, I couldn't find any fresh tips for ${topic} right now.`;
+            }
+
+            // Get the first result
+            const topResult = searchData.items[0];
+            return this.formatResponse(topResult, topic);
+
+        } catch (error) {
+            console.error("Error fetching from Google Search:", error);
+            return `Error: Could not fetch tip. ${error instanceof Error ? error.message : ''}`;
         }
-        
-        return this.formatResponse(response);
     }
 
-    private formatResponse(data: ProgrammingTipResponse): string {
-        // Format the response for the model
-        let content = `**Tip for ${data.topic}:**\n${data.tip}`;
-        if (data.example) {
-            content += `\n**Example:**\n\`\`\`\n${data.example}\n\`\`\``;
+    /**
+     * Performs the fetch request to Google Custom Search API
+     */
+    private async performRequest(query: string): Promise<GoogleSearchResponse> {
+        const url = `${this.baseUrl}?key=${this.apiKey}&cx=${this.cx}&q=${encodeURIComponent(query)}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+                `Google Search API error: ${response.status} ${response.statusText}\n${errorText}`
+            );
         }
+
+        return await response.json() as GoogleSearchResponse;
+    }
+
+    /**
+     * Formats the Google Search result for the user
+     */
+    private formatResponse(result: GoogleSearchResult, topic: string): string {
+        let content = `**Here's a personalized tip I found for ${topic}:**\n`;
+        content += `**${result.title}**\n`;
+        content += `${result.snippet}\n\n`;
+        content += `*Source:* ${result.link}`;
         return content;
     }
 }
