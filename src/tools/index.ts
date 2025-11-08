@@ -4,3 +4,8 @@ export {
   getProgrammingTipToolDefinition,
   handleGetProgrammingTipTool,
 } from './programming.js';
+
+export {
+  generateRoutineToolDefinition,
+  handleGenerateRoutineTool,
+} from './routine.js';

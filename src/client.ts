@@ -1,5 +1,4 @@
-import { GetProgrammingTipArgs } from './types.js';
-
+import { GetProgrammingTipArgs, GenerateRoutineArgs } from './types.js';
 // --- Interfaces for Google Custom Search API Response ---
 interface GoogleSearchResult {
     title: string;
@@ -10,7 +9,7 @@ interface GoogleSearchResult {
 interface GoogleSearchResponse {
     items?: GoogleSearchResult[];
 }
-// ---
+
 
 export class DailyImprovementClient {
     private apiKey: string;
@@ -20,6 +19,37 @@ export class DailyImprovementClient {
     constructor(apiKey: string, cx: string) {
         this.apiKey = apiKey;
         this.cx = cx;
+    }
+
+   
+    async getRoutine(params: GenerateRoutineArgs): Promise<string> {
+        const { interest } = params;
+        
+        const query = `21 day '1 percent better' routine for ${interest}`;
+
+        try {
+            const searchData = await this.performRequest(query);
+
+            if (!searchData.items || searchData.items.length === 0) {
+                return `Sorry, I couldn't find a 21-day plan for ${interest}.`;
+            }
+
+            const topResults = searchData.items.slice(0, 3);
+            
+            let content = `**Here are some 21-day plans I found for ${interest}:**\n\n`;
+            
+            topResults.forEach((result, index) => {
+                content += `${index + 1}. **${result.title}**\n`;
+                content += `   *${result.snippet}...*\n`;
+                content += `   *Source:* ${result.link}\n\n`;
+            });
+
+            return content;
+
+        } catch (error) {
+            console.error("Error fetching from Google Search:", error);
+            return `Error: Could not fetch routine. ${error instanceof Error ? error.message : ''}`;
+        }
     }
 
     /**
