@@ -51,8 +51,9 @@ export async function handleGetSmallTipTool(
             throw new Error("Invalid arguments: 'interest' (string) and 'difficulty' (beginner/intermediate/advanced) are required.");
         }
 
-        const result = await client.getSmallTip(args);
-        
+// NEW (Line 54)
+     // NEW (Line 54)
+        const result = await client.getSmallTipWithAI(args);
         return {
             content: [{ type: "text", text: result }],
             isError: false,

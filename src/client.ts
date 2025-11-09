@@ -1,142 +1,70 @@
 import { GetProgrammingTipArgs, GenerateRoutineArgs, GetSmallTipArgs } from './types.js';
-interface GoogleSearchResult {
-    title: string;
-    link: string;
-    snippet: string;
-}
-
-interface GoogleSearchResponse {
-    items?: GoogleSearchResult[];
-}
-
+import { GoogleGenAI } from "@google/genai";
 
 export class DailyImprovementClient {
-    private apiKey: string;
-    private cx: string;
-    private baseUrl: string = 'https://www.googleapis.com/customsearch/v1';
+    private googleAiApiKey: string;
+    private genAI: GoogleGenAI;
+    private model: string = "gemini-1.5-flash";
 
-    constructor(apiKey: string, cx: string) {
-        this.apiKey = apiKey;
-        this.cx = cx;
+    constructor(googleAiApiKey: string) {
+        this.googleAiApiKey = googleAiApiKey;
+        this.genAI = new GoogleGenAI({ apiKey: this.googleAiApiKey });
     }
 
-   
     async getRoutine(params: GenerateRoutineArgs): Promise<string> {
         const { interest } = params;
-        
-        const query = `21 day '1 percent better every day ' routine for ${interest}`;
-
         try {
-            const searchData = await this.performRequest(query);
+            const prompt = `Create a 21-day '1 percent better' routine for ${interest}.
+            Provide a simple, actionable tip for each day.
+            Format it as a markdown list (e.g., "Day 1: ...").`;
 
-            if (!searchData.items || searchData.items.length === 0) {
-                return `Sorry, I couldn't find a 21-day plan for ${interest}.`;
-            }
-
-            const topResults = searchData.items.slice(0, 3);
-            
-            let content = `**Here are some 21-day plans I found for ${interest}:**\n\n`;
-            
-            topResults.forEach((result, index) => {
-                content += `${index + 1}. **${result.title}**\n`;
-                content += `   *${result.snippet}...*\n`;
-                content += `   *Source:* ${result.link}\n\n`;
+            const result = await this.genAI.models.generateContent({
+                model: this.model,
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
             });
 
-            return content;
-
+            return result.text ?? "No response from AI.";
         } catch (error) {
-            console.error("Error fetching from Google Search:", error);
-            return `Error: Could not fetch routine. ${error instanceof Error ? error.message : ''}`;
+            console.error("Error generating routine from Google AI:", error);
+            return `Error: Could not generate routine. ${error instanceof Error ? error.message : ''}`;
         }
     }
-    async getSmallTip(params: GetSmallTipArgs): Promise<string> {
-            const { interest, difficulty } = params;
-            
-            const query = `short ${difficulty} 1% better tip for ${interest}`;
 
-            try {
-                const searchData = await this.performRequest(query);
-
-                if (!searchData.items || searchData.items.length === 0) {
-                    return `Sorry, I couldn't find any short tips for ${interest}.`;
-                }
-
-             
-                const topResult = searchData.items[0];
-                
-                let tip = topResult.snippet.replace(/\.\.\./g, ''); // Remove '...'
-                
-                const sentences = tip.split('. ');
-                tip = sentences[0].trim(); 
-                if (tip.length < 20) {
-                    tip = topResult.title;
-                }
-
-                return `Here's a ${difficulty} tip for ${interest}: ${tip}. (Source: ${topResult.link})`;
-
-            } catch (error) {
-                console.error("Error fetching from Google Search:", error);
-                return `Error: Could not fetch tip. ${error instanceof Error ? error.message : ''}`;
-            }
-        }
-    /**
-     * Gets a programming tip by searching Google.
-     */
-    async getTip(params: GetProgrammingTipArgs): Promise<string> {
-        const { topic } = params;
-        
-        // Formulate a search query
-        const query = `advanced ${topic} programming tip or unique insight`;
+    async getSmallTipWithAI(params: GetSmallTipArgs): Promise<string> {
+        const { interest, difficulty } = params;
 
         try {
-            const searchData = await this.performRequest(query);
+            const prompt = `Give me one short, ${difficulty} tip for getting 1% better at ${interest}. Be concise, like a single sentence or two.`;
 
-            if (!searchData.items || searchData.items.length === 0) {
-                return `Sorry, I couldn't find any fresh tips for ${topic} right now.`;
-            }
-
-            // Get the first result
-            const topResult = searchData.items[0];
-            return this.formatResponse(topResult, topic);
+            const result = await this.genAI.models.generateContent({
+                model: this.model,
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+            });
+            
+            const tip = result.text ?? "No response from AI.";
+            return `Here's a ${difficulty} tip for ${interest}: ${tip}`;
 
         } catch (error) {
-            console.error("Error fetching from Google Search:", error);
+            console.error("Error generating content from Google AI:", error);
+            return `Error: Could not generate tip. ${error instanceof Error ? error.message : ''}`;
+        }
+    }
+
+    async getTip(params: GetProgrammingTipArgs): Promise<string> {
+        const { topic } = params;
+        try {
+            const prompt = `Give me one advanced programming tip or unique insight for ${topic}.
+            Be specific, provide a short code example if possible, and explain *why* it's a good practice.`;
+
+            const result = await this.genAI.models.generateContent({
+                model: this.model,
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+            });
+
+            return result.text ?? "No response from AI.";
+        } catch (error) {
+            console.error("Error generating programming tip from Google AI:", error);
             return `Error: Could not fetch tip. ${error instanceof Error ? error.message : ''}`;
         }
-    }
-
-    /**
-     * Performs the fetch request to Google Custom Search API
-     */
-    private async performRequest(query: string): Promise<GoogleSearchResponse> {
-        const url = `${this.baseUrl}?key=${this.apiKey}&cx=${this.cx}&q=${encodeURIComponent(query)}`;
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            },
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(
-                `Google Search API error: ${response.status} ${response.statusText}\n${errorText}`
-            );
-        }
-
-        return await response.json() as GoogleSearchResponse;
-    }
-
-    /**
-     * Formats the Google Search result for the user
-     */
-    private formatResponse(result: GoogleSearchResult, topic: string): string {
-        let content = `**Here's a personalized tip I found for ${topic}:**\n`;
-        content += `**${result.title}**\n`;
-        content += `${result.snippet}\n\n`;
-        content += `*Source:* ${result.link}`;
-        return content;
     }
 }

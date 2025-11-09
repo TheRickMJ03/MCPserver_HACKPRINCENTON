@@ -1,9 +1,6 @@
-
 export interface GetProgrammingTipArgs {
-  
   topic: string;
 }
-
 
 export interface ProgrammingTipResponse {
   topic: string;
@@ -12,7 +9,6 @@ export interface ProgrammingTipResponse {
 }
 
 export interface GenerateRoutineArgs {
-
   interest: string;
 }
 

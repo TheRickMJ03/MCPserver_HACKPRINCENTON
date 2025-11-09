@@ -20,7 +20,7 @@ export function createStandaloneServer(config: Config): Server {
     const serverInstance = new Server(
         {
             name: "org/daily-improvement",
-            version: "0.3.0", // Upped version for all tools
+            version: "0.3.0",
         },
         {
             capabilities: {
@@ -29,11 +29,14 @@ export function createStandaloneServer(config: Config): Server {
         }
     );
 
-    // Pass the specific keys to the client
-    const client = new DailyImprovementClient(config.googleApiKey, config.googleCx);
+    // --- FIX ---
+    // Updated the client constructor to only pass the AI key
+    const client = new DailyImprovementClient(config.googleAiApiKey);
 
     serverInstance.setNotificationHandler(InitializedNotificationSchema, async () => {
-        console.log('DailyImprovement MCP client initialized (Google Search Enabled)');
+        // --- FIX ---
+        // Updated the log message
+        console.log('DailyImprovement MCP client initialized (Google AI Enabled)');
     });
 
 
@@ -51,12 +54,16 @@ export function createStandaloneServer(config: Config): Server {
         
         switch (name) {
             case "dailyImprovement_getProgrammingTip":
+                // Note: Your client.ts calls this 'getTip'
+                // Ensure your tool handler calls the correct method name
                 return await handleGetProgrammingTipTool(client, args);
             
             case "dailyImprovement_generate21DayRoutine": 
+                // Note: Your client.ts calls this 'getRoutine'
                 return await handleGenerateRoutineTool(client, args);
 
             case "dailyImprovement_getSmallTip":
+                // Note: Your client.ts calls this 'getSmallTipWithAI'
                 return await handleGetSmallTipTool(client, args);
 
             default:

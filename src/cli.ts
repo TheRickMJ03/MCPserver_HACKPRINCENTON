@@ -42,7 +42,7 @@ OPTIONS:
     --help           Print this help message
 
 ENVIRONMENT VARIABLES:
-    DAILY_IMPROVEMENT_API_KEY   Required: Your DailyImprovement API key (uses 'dummy-key' if not set)
+    GOOGLE_AI_API_KEY           Required: Your Google AI (Gemini) API key
     PORT                        HTTP server port (default: 8080)
     NODE_ENV                    Set to 'production' for production mode
 `);
